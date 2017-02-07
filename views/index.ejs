@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= title %></title>
+    <link rel='stylesheet' href='/stylesheets/style.css'/>
+    <script src="javascripts/socket/socket.io.js"></script>
+</head>
+<body>
+<script>
+    var socket;
+    var firstconnect = true;
+
+    function connect() {
+        if ( firstconnect ) {
+            socket = io.connect( null );
+
+            socket.on( 'message', function ( data ) { message( data ); } );
+            socket.on( 'connect', function () { status_update( "Connected to Server" ); } );
+            socket.on( 'disconnect', function () { status_update( "Disconnected from Server" ); } );
+            socket.on( 'reconnect', function () { status_update( "Reconnected to Server" ); } );
+            socket.on( 'reconnecting', function ( nextRetry ) {
+                status_update( "Reconnecting in "
+                    + nextRetry + " seconds" );
+            } );
+            socket.on( 'reconnect_failed', function () { message( "Reconnect Failed" ); } );
+            socket.on( 'news', function ( data ) { sendMessage( data ); } );
+            socket.on( 'userJoinClient', function ( data ) { userJoin( data ); } );
+
+            firstconnect = false;
+        } else {
+            socket.emit( 'reconnecting' );
+        }
+    }
+
+    function disconnect() {
+        socket.disconnect();
+    }
+
+    function message( data ) {
+        document.getElementById( 'message' ).innerHTML = "Server says: " + data;
+    }
+
+    function status_update( txt ) {
+        document.getElementById( 'status' ).innerHTML = txt;
+    }
+
+    function esc( msg ) {
+        return msg.replace( /</g, '<' ).replace( />/g, '>' );
+    }
+
+    function sendMessage( data ) {
+        console.log( 'sendMessage()' );
+        socket.emit( 'my other event', { my: 'data' } )
+    }
+
+    function joinNamespace() {
+        var name = document.getElementById('username').value;
+        if(!name) return alert("请输入用户名");
+        socket.emit( 'userJoin', { username: name } );
+    }
+
+    function userJoin( data ) {
+        console.log( data );
+    }
+
+    function send() {
+        socket.send( "Hello Server!" );
+    }
+    ;
+
+    var nsp00 = io('/nsp00');
+    nsp00.emit('connection');
+    nsp00.on('test00', function (data) {
+        console.log(data.name);
+    });
+
+
+
+
+</script>
+
+    <h1>Socket.io Test</h1>
+    用户名: <input type="text" id="username" placeholder="请输入用户名">
+    <div><p id="status">Waiting for input</p></div>
+    <div style="background-color: yellow" onclick="joinNamespace()"><button id="message">join</button></div>
+
+    <hr>
+    <button id="connect" onClick='connect()'/>
+    Connect</button>
+    <button id="disconnect" onClick='disconnect()'>Disconnect</button>
+    <button id="send" onClick='send()'/>
+    Send Message</button>
+
+</body>
+</html>
